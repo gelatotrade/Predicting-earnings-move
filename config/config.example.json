@@ -1,0 +1,30 @@
+{
+    "mode": "free",
+    "output_format": "table",
+    "cache_enabled": true,
+    "cache_ttl": 300,
+    "log_level": "INFO",
+    "data_sources": {
+        "free": {
+            "yahoo_finance": true,
+            "earnings_whispers": true,
+            "nasdaq": true,
+            "barchart_scraping": true
+        },
+        "premium": {
+            "unusual_whales": false,
+            "trading_economics": false,
+            "polygon": false,
+            "alpha_vantage": false,
+            "interactive_brokers": false
+        }
+    },
+    "analysis": {
+        "include_historical": true,
+        "include_flows": true,
+        "historical_lookback_quarters": 8,
+        "min_flow_premium": 100000
+    },
+    "risk_free_rate": 0.05,
+    "default_expiration_days_after_earnings": 7
+}
