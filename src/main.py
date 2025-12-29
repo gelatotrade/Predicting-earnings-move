@@ -20,6 +20,7 @@ from tabulate import tabulate
 from .analysis.earnings_predictor import EarningsPredictor, EarningsPrediction
 from .analysis.expected_move import ExpectedMoveCalculator, get_expected_move_summary
 from .analysis.options_analyzer import OptionsAnalyzer
+from .visualization import create_prediction_dashboard, save_prediction_plots
 
 # Configure logging
 logging.basicConfig(
@@ -91,14 +92,16 @@ class EarningsMovePredictor:
     def predict_single(
         self,
         symbol: str,
-        output_format: str = 'text'
+        output_format: str = 'text',
+        output_dir: Optional[str] = None
     ) -> Optional[EarningsPrediction]:
         """
         Generate prediction for a single symbol.
 
         Args:
             symbol: Stock symbol
-            output_format: 'text', 'json', or 'table'
+            output_format: 'text', 'json', 'table', or 'plot'
+            output_dir: Output directory for plots (only used with 'plot' format)
 
         Returns:
             EarningsPrediction or None if failed
@@ -115,7 +118,7 @@ class EarningsMovePredictor:
 
                 progress.update(task, completed=True)
 
-            self._output_prediction(prediction, output_format)
+            self._output_prediction(prediction, output_format, output_dir)
             return prediction
 
         except Exception as e:
@@ -279,13 +282,42 @@ class EarningsMovePredictor:
             floatfmt='.2f'
         ))
 
-    def _output_prediction(self, prediction: EarningsPrediction, format: str):
+    def _output_prediction(self, prediction: EarningsPrediction, format: str, output_dir: Optional[str] = None):
         """Output a single prediction."""
         if format == 'json':
             console.print(json.dumps(prediction.to_dict(), indent=2))
         elif format == 'table':
             self._output_batch([prediction], 'table')
+        elif format == 'plot':
+            self._output_plots(prediction, output_dir)
         else:
+            console.print(prediction.summary())
+
+    def _output_plots(self, prediction: EarningsPrediction, output_dir: Optional[str] = None):
+        """Generate and save visualization plots."""
+        if output_dir is None:
+            output_dir = f'./plots/{prediction.symbol}_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
+
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+        console.print(f"\n[bold]Generating visualization plots for {prediction.symbol}...[/bold]\n")
+
+        try:
+            saved_files = save_prediction_plots(prediction, output_dir)
+
+            console.print(Panel.fit(
+                f"[green]Plots saved to: {output_dir}[/green]\n\n"
+                f"Generated files:\n" +
+                "\n".join([f"  - {Path(f).name}" for f in saved_files]),
+                title=f"{prediction.symbol} Visualizations"
+            ))
+
+            # Also print text summary
+            console.print(prediction.summary())
+
+        except Exception as e:
+            console.print(f"[red]Error generating plots: {e}[/red]")
+            # Fallback to text output
             console.print(prediction.summary())
 
     def _output_batch(self, predictions: List[EarningsPrediction], format: str):
@@ -335,13 +367,15 @@ def cli(ctx, mode, config):
 
 @cli.command()
 @click.argument('symbol')
-@click.option('--format', '-f', type=click.Choice(['text', 'json', 'table']),
-              default='text', help='Output format')
+@click.option('--format', '-f', type=click.Choice(['text', 'json', 'table', 'plot']),
+              default='text', help='Output format (plot generates visual charts)')
+@click.option('--output-dir', '-o', type=click.Path(), default=None,
+              help='Output directory for plots (only used with --format plot)')
 @click.pass_context
-def predict(ctx, symbol, format):
+def predict(ctx, symbol, format, output_dir):
     """Predict expected move for a single symbol."""
     app = ctx.obj['app']
-    app.predict_single(symbol.upper(), format)
+    app.predict_single(symbol.upper(), format, output_dir)
 
 
 @cli.command()
