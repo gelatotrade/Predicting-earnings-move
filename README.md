@@ -12,6 +12,7 @@ A comprehensive Python tool for predicting stock movements after earnings announ
 - **Flow Analysis**: Track unusual options activity and institutional positioning
 - **Direction Prediction**: ML-based direction prediction using multiple signals
 - **Historical Context**: Compare implied moves to historical earnings reactions
+- **Visual Charts**: Generate comprehensive visualization plots for analysis
 
 ## Installation
 
@@ -59,6 +60,12 @@ earnings-predict status
 
 # Use premium mode (requires API keys)
 earnings-predict --mode premium predict AAPL
+
+# Generate visualization plots
+earnings-predict predict AAPL --format plot
+
+# Save plots to custom directory
+earnings-predict predict AAPL --format plot --output-dir ./my_charts
 ```
 
 ### Python API
@@ -102,6 +109,151 @@ calc = ExpectedMoveCalculator(analyzer)
 expected_move = calc.calculate_expected_move(chain)
 
 print(f"Expected Move: ±{expected_move.expected_move_percent:.2f}%")
+```
+
+## Visualizations
+
+The tool generates comprehensive visual charts to help you understand earnings predictions at a glance. Use `--format plot` to generate these visualizations.
+
+### Expected Move Range
+
+Shows the predicted price range after earnings with the current price, upper/lower bounds, and direction indicator.
+
+![Expected Move Range](examples/plots/expected_move_range.png)
+
+**What it shows:**
+- **Blue shaded area**: The expected price range based on ATM straddle pricing
+- **Green dashed line**: Upper bound of expected move
+- **Red dashed line**: Lower bound of expected move
+- **Black solid line**: Current stock price
+- **Direction arrow**: Predicted direction (UP/DOWN) based on multiple signals
+- **Purple dots**: Historical earnings moves for context
+
+---
+
+### Direction Signals Analysis
+
+Breaks down the individual signals contributing to the direction prediction.
+
+![Direction Signals](examples/plots/direction_signals.png)
+
+**What it shows:**
+- **Put/Call Ratio**: Low ratio (<0.7) is bullish, high ratio (>1.3) is bearish
+- **IV Skew**: Higher put IV suggests bearish sentiment
+- **Options Flow**: Net bullish vs bearish institutional trades
+- **Beat Rate**: Historical earnings beat percentage
+- **Recent Trend**: Momentum from recent quarters
+- **Color coding**: Green = Bullish, Red = Bearish, Gray = Neutral
+
+---
+
+### Historical Earnings Moves
+
+Compares the current expected move against historical earnings reactions.
+
+![Historical Moves](examples/plots/historical_moves.png)
+
+**What it shows:**
+- **Bar chart**: Past 12 quarters of earnings moves (green = positive, red = negative)
+- **Blue dashed lines**: Current expected move range
+- **Purple dotted lines**: Average historical move
+- **Beat Rate**: Percentage of quarters where company beat estimates
+
+---
+
+### Options Analysis Dashboard
+
+A comprehensive dashboard of key options metrics.
+
+![Options Analysis](examples/plots/options_analysis.png)
+
+**What it shows:**
+- **Price Levels**: Current price, ATM strike, and max pain comparison
+- **Put/Call Ratio Gauge**: Visual indicator with bullish/bearish/neutral zones
+- **IV Percentile Gauge**: Where current IV ranks historically (0-100%)
+- **Flow Sentiment**: Overall institutional positioning direction
+- **ATM IV**: At-the-money implied volatility percentage
+- **Summary Stats**: All key metrics in one place
+
+---
+
+### Probability Cone
+
+Visualizes price ranges at different probability levels.
+
+![Probability Cone](examples/plots/probability_cone.png)
+
+**What it shows:**
+- **50% Confidence**: Inner range - price has 50% chance of landing here
+- **68% Confidence**: Middle range - one standard deviation (1-sigma)
+- **95% Confidence**: Outer range - two standard deviations (2-sigma)
+- **Cone shape**: Illustrates uncertainty expanding from current price
+
+---
+
+### Confidence Gauge
+
+Shows overall prediction confidence and direction certainty.
+
+![Confidence Gauge](examples/plots/confidence_gauge.png)
+
+**What it shows:**
+- **Overall Confidence**: Prediction quality based on data availability and consistency
+- **Direction Prediction**: UP/DOWN indicator with confidence percentage
+- **Data Sources**: Which sources contributed to the analysis
+
+---
+
+### Generating Visualizations
+
+#### Command Line
+
+```bash
+# Generate plots for a single stock
+earnings-predict predict AAPL --format plot
+
+# Save to custom directory
+earnings-predict predict TSLA --format plot --output-dir ./analysis/tsla
+```
+
+#### Python API
+
+```python
+from src.main import EarningsMovePredictor
+from src.visualization import create_prediction_dashboard, save_prediction_plots
+
+# Get prediction
+predictor = EarningsMovePredictor(mode='free')
+prediction = predictor.predict_single('AAPL', output_format='text')
+
+# Generate all plots
+figures = create_prediction_dashboard(prediction, save_dir='./plots')
+
+# Or save directly
+saved_files = save_prediction_plots(prediction, './plots/aapl')
+```
+
+#### Individual Plot Functions
+
+```python
+from src.visualization import (
+    plot_expected_move_range,
+    plot_direction_signals,
+    plot_historical_moves,
+    plot_options_analysis,
+    plot_probability_cone,
+    plot_confidence_gauge
+)
+
+# Generate specific plots
+fig = plot_expected_move_range(
+    symbol='AAPL',
+    current_price=178.50,
+    expected_move_percent=4.52,
+    expected_range=(170.43, 186.57),
+    predicted_direction='up',
+    save_path='./my_plot.png'
+)
 ```
 
 ## Configuration
@@ -180,14 +332,25 @@ Predicting-earnings-move/
 │   │   ├── base.py              # Base classes
 │   │   ├── free_sources.py      # Free data sources
 │   │   └── premium_sources.py   # Premium API sources
-│   └── analysis/
+│   ├── analysis/
+│   │   ├── __init__.py
+│   │   ├── options_analyzer.py  # Options chain analysis
+│   │   ├── expected_move.py     # Expected move calculator
+│   │   └── earnings_predictor.py # Main prediction engine
+│   └── visualization/
 │       ├── __init__.py
-│       ├── options_analyzer.py  # Options chain analysis
-│       ├── expected_move.py     # Expected move calculator
-│       └── earnings_predictor.py # Main prediction engine
+│       └── plots.py             # Visualization charts & plots
 ├── examples/
 │   ├── basic_usage.py
-│   └── advanced_usage.py
+│   ├── advanced_usage.py
+│   ├── generate_sample_plots.py # Generate example plots
+│   └── plots/                   # Sample visualization outputs
+│       ├── expected_move_range.png
+│       ├── direction_signals.png
+│       ├── historical_moves.png
+│       ├── options_analysis.png
+│       ├── probability_cone.png
+│       └── confidence_gauge.png
 ├── config/
 │   └── config.example.json
 ├── requirements.txt
